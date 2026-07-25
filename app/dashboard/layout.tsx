@@ -15,7 +15,12 @@ export default async function DashboardLayout({
   const mode = await getMode();
   const cfg = await getAdminConfig();
   // Sandbox means no real money is moving even in live mode — note it quietly.
-  const sandbox = (cfg.PAY_PROVIDER ?? process.env.PAY_PROVIDER ?? "sandbox").toLowerCase() === "sandbox";
+  const sandbox =
+    (
+      cfg.PAY_PROVIDER ??
+      process.env.PAY_PROVIDER ??
+      "sandbox"
+    ).toLowerCase() === "sandbox";
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-900 text-slate-50">
@@ -39,9 +44,7 @@ export default async function DashboardLayout({
           mode={mode}
           sandbox={sandbox}
         />
-        <div className="mx-auto max-w-7xl p-4 md:p-8">
-          {children}
-        </div>
+        <div className="mx-auto max-w-7xl p-4 md:p-8">{children}</div>
       </main>
     </div>
   );
