@@ -1,6 +1,7 @@
 import type { PaymentProvider } from "./types";
 import { SandboxProvider } from "./sandbox";
 import { FlutterwaveProvider } from "./flutterwave";
+import { getAdminConfig } from "@/lib/admin-config";
 
 /**
  * Pick the processor for a payment. **Mode decides, not global config:**
@@ -9,13 +10,16 @@ import { FlutterwaveProvider } from "./flutterwave";
  *             is set up, so nothing breaks before go-live
  * The customer/merchant never learns which processor was used.
  */
-export function resolveProvider(mode: "test" | "live" = "test"): PaymentProvider {
+export async function resolveProvider(mode: "test" | "live" = "test"): Promise<PaymentProvider> {
   if (mode === "test") return new SandboxProvider();
 
-  switch ((process.env.PAY_PROVIDER ?? "").toLowerCase()) {
+  const cfg = await getAdminConfig();
+  const providerId = (cfg.PAY_PROVIDER ?? process.env.PAY_PROVIDER ?? "sandbox").toLowerCase();
+
+  switch (providerId) {
     case "flutterwave":
-      return new FlutterwaveProvider();
-    // case "paystack": return new PaystackProvider();
+      return new FlutterwaveProvider(cfg);
+    // case "paystack": return new PaystackProvider(cfg);
     default:
       return new SandboxProvider(); // no live processor configured yet
   }

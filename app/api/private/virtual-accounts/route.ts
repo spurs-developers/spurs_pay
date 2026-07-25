@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
 
-  const provider = resolveProvider(parsed.data.mode ?? "live");
+  const provider = await resolveProvider(parsed.data.mode ?? "live");
   if (!provider.createVirtualAccount) {
     return NextResponse.json({ error: "Virtual accounts are unavailable" }, { status: 400 });
   }

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.data;
   const mode = input.mode ?? "live";
-  const provider = resolveProvider(mode);
+  const provider = await resolveProvider(mode);
   if (!provider.transfer) return NextResponse.json({ error: "Payouts are unavailable" }, { status: 501 });
 
   const reference = input.reference ?? "spo_" + randomBytes(12).toString("hex");

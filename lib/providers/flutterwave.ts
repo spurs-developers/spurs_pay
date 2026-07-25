@@ -3,12 +3,23 @@ import type {
   TransferInstructions, UssdInstructions, NormalizedWebhook,
 } from "./types";
 
+interface FlutterwaveConfig {
+  FLUTTERWAVE_SECRET_KEY?: string;
+  FLUTTERWAVE_WEBHOOK_SECRET?: string;
+}
+
 // Real provider adapter. Only runs when PAY_PROVIDER=flutterwave AND keys are set.
 // The rest of Spurs Pay doesn't change when you switch to this — that's the point.
 export class FlutterwaveProvider implements PaymentProvider {
   readonly name = "flutterwave";
   readonly supportedMethods: PaymentMethod[] = ["card", "bank_transfer", "ussd"];
-  private secret = process.env.FLUTTERWAVE_SECRET_KEY ?? "";
+  private secret: string;
+  private webhookSecret: string;
+
+  constructor(cfg: FlutterwaveConfig = {}) {
+    this.secret = cfg.FLUTTERWAVE_SECRET_KEY ?? process.env.FLUTTERWAVE_SECRET_KEY ?? "";
+    this.webhookSecret = cfg.FLUTTERWAVE_WEBHOOK_SECRET ?? process.env.FLUTTERWAVE_WEBHOOK_SECRET ?? "";
+  }
 
   async charge(input: ChargeInput): Promise<ChargeResult> {
     if (!this.secret) throw new Error("Flutterwave is not configured (missing secret key).");
@@ -68,7 +79,7 @@ export class FlutterwaveProvider implements PaymentProvider {
   }
 
   verifyWebhook(rawBody: string, headers: Headers): { valid: boolean; event?: NormalizedWebhook } {
-    const expected = process.env.FLUTTERWAVE_WEBHOOK_SECRET ?? "";
+    const expected = this.webhookSecret;
     const signature = headers.get("verif-hash") ?? "";
     if (!expected || signature !== expected) return { valid: false };
 

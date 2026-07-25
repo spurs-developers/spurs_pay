@@ -3,6 +3,7 @@ import TopBar from "@/components/TopBar";
 import { requireMerchant } from "@/lib/auth";
 import { getMerchant } from "@/lib/merchants";
 import { getMode } from "@/lib/mode";
+import { getAdminConfig } from "@/lib/admin-config";
 
 export default async function DashboardLayout({
   children,
@@ -12,8 +13,9 @@ export default async function DashboardLayout({
   const user = await requireMerchant();
   const merchant = await getMerchant(user.sub);
   const mode = await getMode();
+  const cfg = await getAdminConfig();
   // Sandbox means no real money is moving even in live mode — note it quietly.
-  const sandbox = (process.env.PAY_PROVIDER ?? "sandbox").toLowerCase() === "sandbox";
+  const sandbox = (cfg.PAY_PROVIDER ?? process.env.PAY_PROVIDER ?? "sandbox").toLowerCase() === "sandbox";
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-900 text-slate-50">

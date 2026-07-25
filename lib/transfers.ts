@@ -47,13 +47,13 @@ export async function getBalance(merchantId: string, currency = "NGN", mode: "te
 /* ------------------------------ recipients ------------------------------ */
 
 export async function listBanks() {
-  const provider = resolveProvider();
+  const provider = await resolveProvider();
   return provider.listBanks ? provider.listBanks() : [];
 }
 
 /** Confirm who owns an account before any money moves. */
 export async function resolveAccount(bankCode: string, accountNumber: string) {
-  const provider = resolveProvider();
+  const provider = await resolveProvider();
   if (!provider.resolveAccount) throw new Error("Account resolution is unavailable");
   return provider.resolveAccount(bankCode, accountNumber);
 }
@@ -150,7 +150,7 @@ export async function createPayout(
     throw new Error("Insufficient balance for this payout");
   }
 
-  const provider = resolveProvider(mode);
+  const provider = await resolveProvider(mode);
   if (!provider.transfer) throw new Error("Payouts are unavailable");
 
   const [ma] = await db

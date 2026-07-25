@@ -7,7 +7,7 @@ import { resolveProvider } from "@/lib/providers";
 // Sandbox-only helper: stands in for the async settlement (bank transfer / USSD)
 // that a real processor confirms via webhook. Disabled unless PAY_PROVIDER=sandbox.
 export async function POST(req: NextRequest) {
-  const provider = resolveProvider();
+  const provider = await resolveProvider();
   if (provider.name !== "sandbox") {
     return NextResponse.json({ error: "Not available" }, { status: 403 });
   }

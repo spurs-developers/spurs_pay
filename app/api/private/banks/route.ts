@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.error;
 
   const mode = req.nextUrl.searchParams.get("mode") === "live" ? "live" : "test";
-  const provider = resolveProvider(mode);
+  const provider = await resolveProvider(mode);
 
   const bankCode = req.nextUrl.searchParams.get("bankCode");
   const accountNumber = req.nextUrl.searchParams.get("accountNumber");

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Payment already processed" }, { status: 409 });
   }
 
-  const provider = resolveProvider();
+  const provider = await resolveProvider();
   if (!provider.createTransfer) {
     return NextResponse.json({ error: "Bank transfer is unavailable" }, { status: 400 });
   }

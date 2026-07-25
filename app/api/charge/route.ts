@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Mode decides the processor — a test payment can never touch real money.
-  const provider = resolveProvider(payment.mode as "test" | "live");
+  const provider = await resolveProvider(payment.mode as "test" | "live");
 
   let result: ChargeResult;
   try {
