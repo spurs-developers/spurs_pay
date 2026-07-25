@@ -1,0 +1,73 @@
+name: Deploy Site to live
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: mywitjjl_accounts
+          MYSQL_ROOT_PASSWORD: mywitjjl_accounts
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=3
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, curl, pdo, mysql
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Copy .env
+        run: cp .env.production .env
+
+      - name: Install PHP dependencies (with Private Repo Auth)
+        env:
+          COMPOSER_AUTH: '{"http-basic": {"github.com": {"username": "x-access-token", "password": "${{ secrets.COMPOSER_AUTH }}"}}}'
+        run: |
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          composer install --no-interaction --prefer-source --no-scripts --optimize-autoloader
+
+      - name: Install Frontend dependencies and Build Assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare Laravel storage and cache
+        run: |
+          mkdir -p storage/framework/views
+          mkdir -p storage/framework/cache
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+          chmod -R 775 storage bootstrap/cache
+
+      - name: Deploy Backend & Compiled Assets
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          server-dir: /
+          local-dir: ./ # deploy everything including public/build
+          exclude: |
+            **/node_modules/**
+            **/.git*
+            .env

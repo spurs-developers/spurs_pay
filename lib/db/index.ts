@@ -1,14 +1,8 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 
-const globalForDb = globalThis as unknown as { _pg?: ReturnType<typeof postgres> };
+const sql = neon(process.env.DATABASE_SYNC_URL!);
 
-const client =
-  globalForDb._pg ??
-  postgres(process.env.DATABASE_SYNC_URL!, { ssl: "require", max: 5, prepare: false });
-
-if (process.env.NODE_ENV !== "production") globalForDb._pg = client;
-
-export const db = drizzle(client, { schema });
+export const db = drizzle({ client: sql, schema });
 export * from "./schema";

@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Dev is opened on both localhost:3100 and 127.0.0.1:3100 (shared-cookie SSO
-  // across the Spurs apps), so allow HMR/dev resources from these hosts.
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  /* config options here */
+  output: 'standalone'
+  // allowedDevOrigins: [""],
 };
 
 export default nextConfig;
