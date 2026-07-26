@@ -104,6 +104,11 @@ export interface TransferResult {
   message?: string;
 }
 
+export interface UssdInput extends MethodInput {
+  /** The bank code the customer dials USSD from (e.g. "058" for GTBank). */
+  bankCode: string;
+}
+
 export interface PaymentProvider {
   readonly name: string;
   /** Which methods this provider offers. The checkout only shows these. */
@@ -115,7 +120,7 @@ export interface PaymentProvider {
   /** Create bank-transfer instructions. Payment settles later via webhook. */
   createTransfer?(input: MethodInput): Promise<TransferInstructions>;
   /** Create USSD instructions. Payment settles later via webhook. */
-  createUssd?(input: MethodInput): Promise<UssdInstructions>;
+  createUssd?(input: UssdInput): Promise<UssdInstructions>;
   /** Verify an inbound provider webhook and normalize it to a Spurs event. */
   verifyWebhook(rawBody: string, headers: Headers): { valid: boolean; event?: NormalizedWebhook };
 
@@ -123,6 +128,7 @@ export interface PaymentProvider {
 
   /** Banks a payout can be sent to. */
   listBanks?(): Promise<Bank[]>;
+  listUssdBanks?(): Promise<Bank[]>;
   /** Look up the account holder's name — always confirm before paying out. */
   resolveAccount?(bankCode: string, accountNumber: string): Promise<{ accountName: string } | null>;
   /** Send money to a bank account. */

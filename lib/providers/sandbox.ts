@@ -3,6 +3,7 @@ import type {
   PaymentProvider, PaymentMethod, ChargeInput, ChargeResult, MethodInput,
   TransferInstructions, UssdInstructions, NormalizedWebhook, Bank, TransferInput, TransferResult, VirtualAccountInput, VirtualAccountResult,
 } from "./types";
+import { USSD_BANKS, USSD_DIAL_PREFIX } from "./ussd-banks";
 
 // Works with zero credentials — simulates a processor so the whole Spurs Pay
 // flow runs end-to-end. Test rules:
@@ -57,8 +58,16 @@ export class SandboxProvider implements PaymentProvider {
     };
   }
 
-  async createUssd(): Promise<UssdInstructions> {
-    return { method: "ussd", code: `*000*${randomInt(1000, 9999)}#`, bankName: "Spurs Test Bank" };
+  async listUssdBanks(): Promise<Bank[]> {
+    return USSD_BANKS;
+  }
+
+  async createUssd(input: MethodInput & { bankCode: string }): Promise<UssdInstructions> {
+    const bank = USSD_BANKS.find((b) => b.code === input.bankCode);
+    if (!bank) throw new Error("Unsupported bank for USSD");
+    const prefix = USSD_DIAL_PREFIX[bank.code] ?? "*000*";
+    const majorAmount = Math.round(input.amount / 100); // sandbox is NGN-only
+    return { method: "ussd", code: `${prefix}${majorAmount}#`, bankName: bank.name };
   }
 
   verifyWebhook(): { valid: boolean; event?: NormalizedWebhook } {
