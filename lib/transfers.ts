@@ -75,12 +75,13 @@ export async function getRecipient(merchantId: string, id: string): Promise<Reci
 export async function createRecipient(
   merchantId: string,
   input: { name?: string; bankCode: string; accountNumber: string },
+  mode: "test" | "live" = "live",
 ): Promise<Recipient> {
-  const banks = await listBanks();
+  const banks = await listBanks(mode);
   const bank = banks.find((b) => b.code === input.bankCode);
   if (!bank) throw new Error("Unknown bank");
 
-  const resolved = await resolveAccount(input.bankCode, input.accountNumber);
+  const resolved = await resolveAccount(input.bankCode, input.accountNumber, mode);
   if (!resolved) throw new Error("Could not resolve that account number");
 
   const [r] = await db
@@ -104,11 +105,11 @@ export async function deleteRecipient(merchantId: string, id: string): Promise<v
 
 /* -------------------------------- payouts ------------------------------- */
 
-export async function listPayouts(merchantId: string, limit = 100): Promise<Payout[]> {
+export async function listPayouts(merchantId: string, limit = 100, mode: "test" | "live" = "live"): Promise<Payout[]> {
   return db
     .select()
     .from(payouts)
-    .where(eq(payouts.merchantId, merchantId))
+    .where(and(eq(payouts.merchantId, merchantId), eq(payouts.mode, mode)))
     .orderBy(desc(payouts.createdAt))
     .limit(limit);
 }

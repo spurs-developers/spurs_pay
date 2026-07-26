@@ -4,6 +4,7 @@ import { getBalance, listRecipients, listPayouts, recipientsFor, listBanks } fro
 import { formatAmount } from "@/lib/format";
 import { Card, StatCard, PageHeader } from "@/components/pay-ui";
 import { createRecipientAction, createPayoutAction } from "../actions";
+import { getMode } from "@/lib/mode";
 
 const STATUS: Record<string, string> = {
   successful: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -18,12 +19,13 @@ export default async function PayoutsPage({
 }) {
   const user = await requireMerchant();
   const { ok, error } = await searchParams;
+  const mode = await getMode()
 
   const [balance, recipients, payouts, banks] = await Promise.all([
-    getBalance(user.sub),
+    getBalance(user.sub, "NGN", mode),
     listRecipients(user.sub),
-    listPayouts(user.sub, 50),
-    listBanks(),
+    listPayouts(user.sub, 50, mode),
+    listBanks(mode),
   ]);
   const byId = await recipientsFor(payouts);
 

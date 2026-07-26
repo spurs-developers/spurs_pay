@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireMerchant } from "@/lib/auth";
-import type { Mode } from "@/lib/mode";
+import { getMode, type Mode } from "@/lib/mode";
 import { createMerchantKey, revokeKey, updateMerchant, regenerateWebhookSecret } from "@/lib/merchants";
 import { refundPayment } from "@/lib/refunds";
 import { createInvoice, voidInvoice } from "@/lib/invoices";
@@ -71,12 +71,13 @@ export async function refundAction(reference: string, amountMinor?: number, reas
 
 export async function createRecipientAction(formData: FormData) {
   const m = await requireMerchant();
+  const mode = await getMode();
   const bankCode = String(formData.get("bankCode") ?? "");
   const accountNumber = String(formData.get("accountNumber") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim() || undefined;
 
   try {
-    await createRecipient(m.sub, { bankCode, accountNumber, name });
+    await createRecipient(m.sub, { bankCode, accountNumber, name }, mode);
   } catch (e) {
     redirect(`/dashboard/payouts?error=${encodeURIComponent((e as Error).message)}`);
   }
