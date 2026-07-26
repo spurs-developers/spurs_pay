@@ -328,6 +328,8 @@ function CardPanel({
 
 /* -------------------- Bank transfer / USSD -------------------- */
 
+import type { Bank } from "@/lib/providers/types";
+
 function AsyncPanel({
   kind,
   reference,
@@ -338,28 +340,52 @@ function AsyncPanel({
   onDone: () => void;
 }) {
   const [instructions, setInstructions] = useState<Instructions | null>(null);
+  const [banks, setBanks] = useState<Bank[] | null>(null); // ussd only
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const endpoint =
     kind === "bank_transfer" ? "/api/checkout/transfer" : "/api/checkout/ussd";
 
+  // Bootstrap: bank_transfer auto-creates instructions immediately. USSD first
+  // checks whether a bank was already picked (resume), and if not, loads the
+  // bank list so the customer can choose one.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reference }),
-        });
-        const json = await res.json();
-        if (cancelled) return;
-        if (!res.ok) setError(json.error ?? "Couldn't set up this method.");
-        else setInstructions(json.instructions);
+        if (kind === "bank_transfer") {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference }),
+          });
+          const json = await res.json();
+          if (cancelled) return;
+          if (!res.ok) setError(json.error ?? "Couldn't set up this method.");
+          else setInstructions(json.instructions);
+        } else {
+          const statusRes = await fetch(
+            `/api/checkout/status?reference=${encodeURIComponent(reference)}`,
+          );
+          const statusJson = await statusRes.json();
+          if (cancelled) return;
+          if (statusJson.method === "ussd" && statusJson.instructions) {
+            setInstructions(statusJson.instructions);
+          } else {
+            const banksRes = await fetch(
+              `/api/checkout/ussd?reference=${encodeURIComponent(reference)}`,
+            );
+            const banksJson = await banksRes.json();
+            if (cancelled) return;
+            if (!banksRes.ok) setError(banksJson.error ?? "Couldn't load banks.");
+            else setBanks(banksJson.banks ?? []);
+          }
+        }
       } catch {
         if (!cancelled) setError("Couldn't set up this method.");
       } finally {
@@ -369,7 +395,29 @@ function AsyncPanel({
     return () => {
       cancelled = true;
     };
-  }, [endpoint, reference]);
+  }, [endpoint, kind, reference]);
+
+  async function chooseBank(bankCode: string) {
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference, bankCode }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Couldn't set up USSD.");
+        return;
+      }
+      setInstructions(json.instructions);
+    } catch {
+      setError("Couldn't set up USSD.");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const poll = useCallback(async () => {
     const res = await fetch(
@@ -410,6 +458,30 @@ function AsyncPanel({
         {error}
       </p>
     );
+
+  // USSD: no bank chosen yet — show the picker instead of instructions.
+  if (kind === "ussd" && !instructions) {
+    return (
+      <div className="space-y-2">
+        <p className="mb-1 text-xs font-medium text-neutral-500">Choose your bank</p>
+        {(banks ?? []).map((b) => (
+          <button
+            key={b.code}
+            type="button"
+            disabled={creating}
+            onClick={() => chooseBank(b.code)}
+            className="flex h-11 w-full items-center justify-between rounded-xl border border-neutral-200 px-4 text-sm font-medium transition hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-800 dark:hover:bg-neutral-900"
+          >
+            {b.name}
+            {creating && <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-indigo-600" />}
+          </button>
+        ))}
+        {(banks ?? []).length === 0 && (
+          <p className="text-sm text-neutral-500">No banks available for USSD right now.</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
