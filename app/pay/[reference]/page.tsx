@@ -7,7 +7,7 @@ import { formatAmount } from "@/lib/format";
 import { resolveProvider } from "@/lib/providers";
 import CopyText from "@/components/CopyText";
 import CheckoutForm from "./CheckoutForm";
-
+import { enabledMethods } from "@/lib/checkout-methods";
 // Hosted, Spurs-branded checkout. Nothing here reveals the underlying processor.
 export default async function CheckoutPage({
   params,
@@ -25,7 +25,7 @@ export default async function CheckoutPage({
     (merchant?.allowedMethods ?? "card,bank_transfer,ussd,wallet").split(","),
   );
   const provider = await resolveProvider();
-  const methods = provider.supportedMethods.filter((m) => allowed.has(m));
+  const methods = await enabledMethods(merchant, payment.mode as "test" | "live");
   const done = payment.status !== "pending";
 
   return (

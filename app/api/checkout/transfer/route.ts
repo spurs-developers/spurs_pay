@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPayment, attachInstructions } from "@/lib/payments";
 import { resolveProvider } from "@/lib/providers";
+import { getMerchant } from "@/lib/merchants";
+import { enabledMethods } from "@/lib/checkout-methods";
 
 // Called by the hosted checkout when the customer picks "Bank transfer".
 // Returns the account to send money to; the payment stays pending until it lands.
@@ -12,6 +14,12 @@ export async function POST(req: NextRequest) {
   if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   if (payment.status !== "pending") {
     return NextResponse.json({ error: "Payment already processed" }, { status: 409 });
+  }
+
+  const merchant = await getMerchant(payment.merchantId);
+  const allowed = await enabledMethods(merchant, payment.mode as "test" | "live");
+  if (!allowed.includes("bank_transfer")) {
+    return NextResponse.json({ error: "Bank transfer isn't enabled for this payment" }, { status: 400 });
   }
 
   const provider = await resolveProvider();
