@@ -1,576 +1,116 @@
-// app/pay/[reference]/CheckoutForm.tsx
-"use client";
+// app/pay/[reference]/page.tsx
+import { notFound } from "next/navigation";
+// import { ShieldCheck } from "lucide-react";
+import { getPayment } from "@/lib/payments";
+import { getMerchant } from "@/lib/merchants";
+import { formatAmount } from "@/lib/format";
+import { resolveProvider } from "@/lib/providers";
+import CopyText from "@/components/CopyText";
+import CheckoutForm from "./CheckoutForm";
+import { enabledMethods } from "@/lib/checkout-methods";
+// Hosted, Spurs-branded checkout. Nothing here reveals the underlying processor.
+export default async function CheckoutPage({
+  params,
+}: {
+  params: Promise<{ reference: string }>;
+}) {
+  const { reference } = await params;
+  const payment = await getPayment(reference);
+  if (!payment) notFound();
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  CreditCard,
-  Landmark,
-  Hash,
-  Lock,
-  Copy,
-  Check,
-  ShieldCheck,
-  ChevronRight,
-} from "lucide-react";
-import type {
-  PaymentMethod,
-  Instructions,
-  TransferInstructions,
-  UssdInstructions,
-} from "@/lib/providers/types";
-
-interface Props {
-  reference: string;
-  amountLabel: string;
-  methods: PaymentMethod[];
-  businessName?: string | null;
-  customerEmail?: string | null;
-  description?: string | null;
-}
-
-const METHOD_META: Record<
-  PaymentMethod,
-  { label: string; icon: typeof CreditCard }
-> = {
-  card: { label: "Card", icon: CreditCard },
-  bank_transfer: { label: "Bank transfer", icon: Landmark },
-  ussd: { label: "USSD", icon: Hash },
-};
-
-const HEADINGS: Record<PaymentMethod, string> = {
-  card: "Enter your card details to pay",
-  bank_transfer: "Complete your bank transfer",
-  ussd: "Dial the USSD code to pay",
-};
-
-export default function CheckoutForm({
-  reference,
-  amountLabel,
-  methods,
-  businessName,
-  customerEmail,
-  description,
-}: Props) {
-  const [active, setActive] = useState<PaymentMethod>(methods[0]);
-  const [done, setDone] = useState(false);
-
-  if (done) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6 text-center dark:bg-neutral-950">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-2xl text-emerald-600">
-          ✓
-        </div>
-        <p className="mt-5 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-          Payment successful
-        </p>
-        <p className="mt-1.5 text-sm text-neutral-500">
-          {amountLabel} paid. You can close this window.
-        </p>
-      </main>
-    );
-  }
+  const merchant = await getMerchant(payment.merchantId);
+  const amountLabel = formatAmount(payment.amount, payment.currency);
+  // Offer only methods the processor supports AND the merchant has enabled.
+  const allowed = new Set(
+    (merchant?.allowedMethods ?? "card,bank_transfer,ussd,wallet").split(","),
+  );
+  const provider = await resolveProvider();
+  const methods = await enabledMethods(merchant, payment.mode as "test" | "live");
+  const done = payment.status !== "pending";
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-white dark:bg-neutral-950">
-      {/* Top bar — who's being paid, and how much */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-5 py-4 lg:px-8 dark:border-neutral-900">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
-            S
+    <main className="flex-1 bg-neutral-100 px-4 py-8 sm:grid sm:place-items-center sm:py-14 dark:bg-neutral-950">
+      <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5 sm:grid sm:grid-cols-[380px_1fr]">
+        {/* Ticket-stub seam — desktop only, where there's an actual panel boundary to punch. */}
+        <div className="pointer-events-none absolute inset-y-0 left-[380px] hidden w-px border-l border-dashed border-neutral-200 sm:block" />
+        <div className="pointer-events-none absolute left-[380px] top-0 hidden h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-100 sm:block dark:bg-neutral-950" />
+        <div className="pointer-events-none absolute bottom-0 left-[380px] hidden h-6 w-6 -translate-x-1/2 translate-y-1/2 rounded-full bg-neutral-100 sm:block dark:bg-neutral-950" />
+
+        {/* Brand / summary rail */}
+        <div className="relative overflow-hidden bg-slate-950 px-6 py-8 text-white sm:px-7 sm:py-10">
+          <div
+            className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"
+            aria-hidden
+          />
+          <span className="relative inline-flex items-center gap-2 text-sm font-semibold text-white">
+            <span className="grid h-6 w-6 place-items-center rounded-md bg-indigo-500 text-xs">S</span>
+            Spurs Pay
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-              {businessName ?? "Spurs Pay"}
-            </p>
-            <p className="truncate text-xs text-neutral-500">
-              {customerEmail ?? description ?? "Secure checkout"}
-            </p>
-          </div>
-        </div>
-        <div className="shrink-0 rounded-full bg-neutral-100 px-3.5 py-1.5 text-sm dark:bg-neutral-900">
-          <span className="text-neutral-500">Pay </span>
-          <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+
+          <p className="relative mt-8 text-sm text-slate-400">
+            {merchant?.businessName ? `You're paying` : "Complete your payment"}
+          </p>
+          {merchant?.businessName && (
+            <p className="relative text-lg font-medium text-white">{merchant.businessName}</p>
+          )}
+          <p className="relative mt-3 font-mono text-4xl font-semibold tracking-tight text-white sm:text-[2.75rem]">
             {amountLabel}
-          </span>
-        </div>
-      </header>
+          </p>
+          {payment.description && (
+            <p className="relative mt-2 text-sm text-slate-400">{payment.description}</p>
+          )}
 
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* Method rail — horizontal pills on mobile, vertical list on desktop */}
-        <aside className="flex shrink-0 flex-col gap-1 border-b border-neutral-200 bg-neutral-50 px-4 py-3 lg:w-60 lg:border-b-0 lg:border-r lg:py-6 xl:w-64 dark:border-neutral-800 dark:bg-neutral-900/40">
-          <span className="hidden px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-neutral-400 lg:block">
-            Pay with
-          </span>
-          <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
-            {methods.map((m) => {
-              const { label, icon: Icon } = METHOD_META[m];
-              const isActive = active === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setActive(m)}
-                  aria-pressed={isActive}
-                  className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors lg:w-full ${
-                    isActive
-                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700"
-                      : "text-neutral-500 hover:bg-white/70 hover:text-neutral-800 dark:hover:bg-neutral-800/60 dark:hover:text-neutral-200"
-                  }`}
-                >
-                  <Icon
-                    size={16}
-                    className={
-                      isActive ? "text-indigo-600" : "text-neutral-400"
-                    }
-                  />
-                  {label}
-                  {isActive && (
-                    <ChevronRight
-                      size={14}
-                      className="ml-auto hidden text-indigo-400 lg:block"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Active method's form */}
-        <main className="flex flex-1 items-center justify-center px-5 py-10 lg:px-10">
-          <div className="w-full max-w-md">
-            <h1 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-              {HEADINGS[active]}
-            </h1>
-
-            <div className="mt-6">
-              {active === "card" && (
-                <CardPanel
-                  reference={reference}
-                  amountLabel={amountLabel}
-                  onDone={() => setDone(true)}
-                />
-              )}
-              {active === "bank_transfer" && (
-                <AsyncPanel
-                  kind="bank_transfer"
-                  reference={reference}
-                  onDone={() => setDone(true)}
-                />
-              )}
-              {active === "ussd" && (
-                <AsyncPanel
-                  kind="ussd"
-                  reference={reference}
-                  onDone={() => setDone(true)}
-                />
-              )}
+          <div className="relative mt-8 border-t border-dashed border-white/10 pt-5 sm:mt-10 sm:pt-6">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">Reference</span>
+              <CopyText value={payment.reference} className="text-slate-300 hover:text-white" />
             </div>
-
-            <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
-              <ShieldCheck size={13} /> Secured by Spurs Pay
+            <div className="mt-4 hidden items-start gap-2 text-xs text-slate-500 sm:flex">
+              {/* <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-400" /> */}
+              <span>Your card and bank details are encrypted end-to-end. Spurs Pay never shares them with {merchant?.businessName ?? "the merchant"}.</span>
             </div>
           </div>
-        </main>
+        </div>
+
+        {/* Payment interaction */}
+        <div className="px-6 py-8 sm:px-8 sm:py-10">
+          {done ? (
+            <StatusScreen status={payment.status as "successful" | "failed"} />
+          ) : methods.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center py-10 text-center">
+              <p className="text-sm font-medium text-neutral-900">No payment method is available</p>
+              <p className="mt-1 max-w-xs text-sm text-neutral-500">
+                {merchant?.businessName ?? "This merchant"} hasn&apos;t enabled a way to pay yet. Please contact them directly.
+              </p>
+            </div>
+          ) : (
+            <CheckoutForm reference={payment.reference} amountLabel={amountLabel} methods={methods} />
+          )}
+        </div>
       </div>
-    </div>
+
+      <p className="mt-5 text-center text-xs text-neutral-400 sm:hidden">Secured by Spurs Pay</p>
+    </main>
   );
 }
 
-/* ----------------------------- Card ----------------------------- */
-
-function formatCardNumber(v: string) {
-  return v
-    .replace(/\D/g, "")
-    .slice(0, 19)
-    .replace(/(.{4})/g, "$1 ")
-    .trim();
-}
-
-function formatExpiry(v: string) {
-  const digits = v.replace(/\D/g, "").slice(0, 4);
-  return digits.length > 2
-    ? `${digits.slice(0, 2)} / ${digits.slice(2)}`
-    : digits;
-}
-
-function CardPanel({
-  reference,
-  amountLabel,
-  onDone,
-}: {
-  reference: string;
-  amountLabel: string;
-  onDone: () => void;
-}) {
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [card, setCard] = useState({
-    number: "",
-    expiry: "",
-    cvv: "",
-    name: "",
-  });
-  const set = <K extends keyof typeof card>(k: K, v: string) =>
-    setCard((c) => ({ ...c, [k]: v }));
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setProcessing(true);
-    setError(null);
-    const [expMonth, expYear] = card.expiry.split("/").map((s) => s.trim());
-    try {
-      const res = await fetch("/api/charge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reference,
-          card: {
-            number: card.number.replace(/\s+/g, ""),
-            expMonth,
-            expYear,
-            cvv: card.cvv,
-            name: card.name,
-          },
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) return fail(json.error ?? "Payment failed.");
-      if (json.data?.status === "successful") {
-        onDone();
-        if (json.redirectUrl)
-          setTimeout(() => (window.location.href = json.redirectUrl), 1200);
-      } else fail("Your card was declined.");
-    } catch {
-      fail("Something went wrong. Please try again.");
-    }
-    function fail(msg: string) {
-      setProcessing(false);
-      setError(msg);
-    }
-  }
-
+function StatusScreen({ status }: { status: "successful" | "failed" }) {
+  const ok = status === "successful";
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <Field label="Card number">
-        <input
-          inputMode="numeric"
-          autoComplete="cc-number"
-          required
-          placeholder="0000 0000 0000 0000"
-          value={card.number}
-          onChange={(e) => set("number", formatCardNumber(e.target.value))}
-          className="fld font-mono"
-          disabled={processing}
-        />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Expiry">
-          <input
-            required
-            placeholder="MM / YY"
-            autoComplete="cc-exp"
-            value={card.expiry}
-            onChange={(e) => set("expiry", formatExpiry(e.target.value))}
-            className="fld font-mono"
-            disabled={processing}
-          />
-        </Field>
-        <Field label="CVV" hint="3–4 digits">
-          <input
-            required
-            inputMode="numeric"
-            placeholder="123"
-            autoComplete="cc-csc"
-            maxLength={4}
-            value={card.cvv}
-            onChange={(e) =>
-              set("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
-            className="fld font-mono"
-            disabled={processing}
-          />
-        </Field>
-      </div>
-      <Field label="Cardholder name">
-        <input
-          placeholder="Name on card"
-          autoComplete="cc-name"
-          value={card.name}
-          onChange={(e) => set("name", e.target.value)}
-          className="fld"
-          disabled={processing}
-        />
-      </Field>
-
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:bg-red-500/10">
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={processing}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+    <div className="flex h-full flex-col items-center justify-center py-10 text-center">
+      <div
+        className={`grid h-14 w-14 place-items-center rounded-full text-2xl ${
+          ok ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+        }`}
       >
-        {processing ? (
-          "Processing…"
-        ) : (
-          <>
-            <Lock size={14} /> Pay {amountLabel}
-          </>
-        )}
-      </button>
-    </form>
-  );
-}
-
-/* -------------------- Bank transfer / USSD -------------------- */
-
-function AsyncPanel({
-  kind,
-  reference,
-  onDone,
-}: {
-  kind: "bank_transfer" | "ussd";
-  reference: string;
-  onDone: () => void;
-}) {
-  const [instructions, setInstructions] = useState<Instructions | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
-
-  const endpoint =
-    kind === "bank_transfer" ? "/api/checkout/transfer" : "/api/checkout/ussd";
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reference }),
-        });
-        const json = await res.json();
-        if (cancelled) return;
-        if (!res.ok) setError(json.error ?? "Couldn't set up this method.");
-        else setInstructions(json.instructions);
-      } catch {
-        if (!cancelled) setError("Couldn't set up this method.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [endpoint, reference]);
-
-  const poll = useCallback(async () => {
-    const res = await fetch(
-      `/api/checkout/status?reference=${encodeURIComponent(reference)}`,
-    );
-    const json = await res.json();
-    if (json.status === "successful") onDone();
-  }, [reference, onDone]);
-
-  useEffect(() => {
-    if (!instructions) return;
-    const id = setInterval(poll, 4000);
-    return () => clearInterval(id);
-  }, [instructions, poll]);
-
-  async function iHavePaid() {
-    setConfirming(true);
-    await fetch("/api/checkout/simulate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference }),
-    }).catch(() => {});
-    await poll();
-    setConfirming(false);
-  }
-
-  if (loading) {
-    return (
-      <div className="flex h-48 flex-col items-center justify-center gap-2 text-sm text-neutral-500">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-indigo-600" />
-        Setting up…
+        {ok ? "✓" : "✕"}
       </div>
-    );
-  }
-  if (error)
-    return (
-      <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:bg-red-500/10">
-        {error}
+      <p className="mt-4 font-medium text-neutral-900">
+        {ok ? "Payment completed" : "Payment failed"}
       </p>
-    );
-
-  return (
-    <div className="space-y-5">
-      {instructions?.method === "bank_transfer" ? (
-        <TransferDetails t={instructions} />
-      ) : instructions?.method === "ussd" ? (
-        <UssdDetails u={instructions} />
-      ) : null}
-
-      <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-        We&apos;re waiting for your payment to arrive. This page updates
-        automatically once it clears — no need to refresh.
-      </div>
-
-      <button
-        onClick={iHavePaid}
-        disabled={confirming}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
-      >
-        {confirming ? "Checking…" : "I've made this payment"}
-      </button>
+      <p className="mt-1 max-w-xs text-sm text-neutral-500">
+        This payment has already been processed. You can close this window.
+      </p>
     </div>
-  );
-}
-
-function TransferDetails({ t }: { t: TransferInstructions }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-          Transfer to this account
-        </span>
-        <ExpiryCountdown expiresAt={t.expiresAt} />
-      </div>
-      <div className="mt-2.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-        <Row label="Bank" value={t.bankName} />
-        <Row label="Account number" value={t.accountNumber} copy />
-        <Row label="Account name" value={t.accountName} />
-      </div>
-    </div>
-  );
-}
-
-function UssdDetails({ u }: { u: UssdInstructions }) {
-  return (
-    <div>
-      <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-        Dial this on your phone
-      </span>
-      <div className="mt-2.5 rounded-xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-        <p className="font-mono text-3xl font-semibold tracking-wide text-neutral-900 dark:text-neutral-100">
-          {u.code}
-        </p>
-        <p className="mt-1.5 text-xs text-neutral-400">{u.bankName}</p>
-      </div>
-    </div>
-  );
-}
-
-/** Live "expires in mm:ss" — same pattern Paystack/Flutterwave show on transfer instructions. */
-function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
-  const [remaining, setRemaining] = useState(() =>
-    Math.max(0, Date.parse(expiresAt) - Date.now()),
-  );
-  useEffect(() => {
-    const id = setInterval(
-      () => setRemaining(Math.max(0, Date.parse(expiresAt) - Date.now())),
-      1000,
-    );
-    return () => clearInterval(id);
-  }, [expiresAt]);
-  const mins = Math.floor(remaining / 60000);
-  const secs = Math.floor((remaining % 60000) / 1000);
-  const low = remaining < 5 * 60_000;
-  return (
-    <span
-      className={`font-mono text-xs font-medium ${low ? "text-red-500" : "text-neutral-400"}`}
-    >
-      Expires {mins}:{String(secs).padStart(2, "0")}
-    </span>
-  );
-}
-
-function Row({
-  label,
-  value,
-  copy,
-}: {
-  label: string;
-  value: string;
-  copy?: boolean;
-}) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span className="flex items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {value}
-        {copy && (
-          <button
-            onClick={() => {
-              navigator.clipboard?.writeText(value);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-            className="text-neutral-400 hover:text-indigo-600"
-            aria-label="Copy account number"
-          >
-            {copied ? (
-              <Check size={14} className="text-emerald-500" />
-            ) : (
-              <Copy size={14} />
-            )}
-          </button>
-        )}
-      </span>
-    </div>
-  );
-}
-
-/* ------------------------------ shared ------------------------------ */
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 flex items-baseline justify-between text-xs font-medium text-neutral-600 dark:text-neutral-400">
-        {label}
-        {hint && <span className="font-normal text-neutral-400">{hint}</span>}
-      </span>
-      {children}
-      <style jsx>{`
-        .fld {
-          height: 3rem;
-          width: 100%;
-          border-radius: 0.75rem;
-          border: 1px solid #d4d4d4;
-          padding: 0 1rem;
-          font-size: 0.9rem;
-          outline: none;
-          transition:
-            border-color 0.15s,
-            box-shadow 0.15s;
-          background: transparent;
-        }
-        .fld:focus {
-          border-color: #4f46e5;
-          box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
-        }
-        .fld:disabled {
-          opacity: 0.6;
-        }
-      `}</style>
-    </label>
   );
 }
