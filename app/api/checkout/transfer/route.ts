@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
     });
     await attachInstructions(payment.reference, "bank_transfer", instructions);
     return NextResponse.json({ instructions });
-  } catch {
+  } catch (e) {
+    // Log the real cause server-side — the customer-facing message stays
+    // generic on purpose (the processor is never named to customers), but we
+    // need to actually see what broke.
+    console.error("[checkout/transfer]", payment.reference, e instanceof Error ? e.message : e);
     return NextResponse.json({ error: "Couldn't set up a bank transfer. Try another method." }, { status: 502 });
   }
 }
