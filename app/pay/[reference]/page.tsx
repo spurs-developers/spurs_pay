@@ -1,6 +1,6 @@
 // app/pay/[reference]/page.tsx
 import { notFound } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+// import { ShieldCheck } from "lucide-react";
 import { getPayment } from "@/lib/payments";
 import { getMerchant } from "@/lib/merchants";
 import { formatAmount } from "@/lib/format";
@@ -66,7 +66,7 @@ export default async function CheckoutPage({
               <CopyText value={payment.reference} className="text-slate-300 hover:text-white" />
             </div>
             <div className="mt-4 hidden items-start gap-2 text-xs text-slate-500 sm:flex">
-              <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+              {/* <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-400" /> */}
               <span>Your card and bank details are encrypted end-to-end. Spurs Pay never shares them with {merchant?.businessName ?? "the merchant"}.</span>
             </div>
           </div>
