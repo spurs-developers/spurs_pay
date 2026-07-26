@@ -1,6 +1,7 @@
 import { db, virtualAccounts, merchants } from "@/lib/db";
 import { desc, eq } from "drizzle-orm";
 import { randomInt } from "node:crypto";
+import { getUserBvn } from "./accounts-client";
 import { resolveProvider } from "./providers";
 import { Mode } from "./mode";
 
@@ -17,19 +18,23 @@ export async function createVirtualAccount(merchantId: string, label: string, mo
     throw new Error(`${provider.name} doesn't support virtual accounts`);
   }
 
+  const bvn = await getUserBvn(merchantId);
   const result = await provider.createVirtualAccount({
     reference: merchantId,
     customerName: m?.businessName ?? "Merchant",
     customerEmail: m?.email ?? undefined,
+    ...(bvn ? { bvn } : {}),
   });
   const [va] = await db
     .insert(virtualAccounts)
     .values({
       merchantId,
       label: label || "Collections",
-      bankName: "Spurs Test Bank",
-      accountNumber: String(randomInt(1_000_000_000, 9_999_999_999)),
-      accountName: `SPURS PAY / ${(m?.businessName ?? "MERCHANT").toUpperCase()}`,
+      bankName: result.bankName,
+      accountNumber: result.accountNumber,
+      accountName: result.accountName,
+      provider: provider.name,
+      providerRef: result.providerRef,
     })
     .returning();
   return va;

@@ -12,6 +12,7 @@ const Schema = z.object({
   customerEmail: z.string().email().optional(),
   currency: z.string().optional(),
   mode: z.enum(["test", "live"]).optional(),
+  bvn: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
