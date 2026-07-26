@@ -1,66 +1,218 @@
+// app/pay/[reference]/CheckoutForm.tsx
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { PaymentMethod, Bank, TransferInstructions, UssdInstructions } from "@/lib/providers/types";
+import {
+  CreditCard,
+  Landmark,
+  Hash,
+  Lock,
+  Copy,
+  Check,
+  ShieldCheck,
+  ChevronRight,
+} from "lucide-react";
+import type {
+  PaymentMethod,
+  Instructions,
+  TransferInstructions,
+  UssdInstructions,
+} from "@/lib/providers/types";
 
 interface Props {
   reference: string;
   amountLabel: string;
   methods: PaymentMethod[];
+  businessName?: string | null;
+  customerEmail?: string | null;
+  description?: string | null;
 }
 
-const METHOD_LABELS: Record<PaymentMethod, string> = {
-  card: "Card",
-  bank_transfer: "Bank transfer",
-  ussd: "USSD",
+const METHOD_META: Record<
+  PaymentMethod,
+  { label: string; icon: typeof CreditCard }
+> = {
+  card: { label: "Card", icon: CreditCard },
+  bank_transfer: { label: "Bank transfer", icon: Landmark },
+  ussd: { label: "USSD", icon: Hash },
 };
 
-export default function CheckoutForm({ reference, amountLabel, methods }: Props) {
-  const [active, setActive] = useState<PaymentMethod>(methods[0] ?? "card");
+const HEADINGS: Record<PaymentMethod, string> = {
+  card: "Enter your card details to pay",
+  bank_transfer: "Complete your bank transfer",
+  ussd: "Dial the USSD code to pay",
+};
+
+export default function CheckoutForm({
+  reference,
+  amountLabel,
+  methods,
+  businessName,
+  customerEmail,
+  description,
+}: Props) {
+  const [active, setActive] = useState<PaymentMethod>(methods[0]);
   const [done, setDone] = useState(false);
 
   if (done) {
     return (
-      <div className="text-center py-6">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 grid place-items-center text-2xl">✓</div>
-        <p className="font-medium text-neutral-900">Payment successful</p>
-        <p className="text-sm text-neutral-500 mt-1">{amountLabel} paid. You can close this window.</p>
-      </div>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6 text-center dark:bg-neutral-950">
+        <div className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-2xl text-emerald-600">
+          ✓
+        </div>
+        <p className="mt-5 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          Payment successful
+        </p>
+        <p className="mt-1.5 text-sm text-neutral-500">
+          {amountLabel} paid. You can close this window.
+        </p>
+      </main>
     );
   }
 
   return (
-    <div>
-      {methods.length > 1 && (
-        <div className="mb-5 grid grid-cols-3 gap-1 rounded-lg bg-neutral-100 p-1">
-          {methods.map((m) => (
-            <button
-              key={m}
-              onClick={() => setActive(m)}
-              className={`rounded-md py-1.5 text-xs font-medium transition ${
-                active === m ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"
-              }`}
-            >
-              {METHOD_LABELS[m]}
-            </button>
-          ))}
+    <div className="flex min-h-screen w-full flex-col bg-white dark:bg-neutral-950">
+      {/* Top bar — who's being paid, and how much */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-5 py-4 lg:px-8 dark:border-neutral-900">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
+            S
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              {businessName ?? "Spurs Pay"}
+            </p>
+            <p className="truncate text-xs text-neutral-500">
+              {customerEmail ?? description ?? "Secure checkout"}
+            </p>
+          </div>
         </div>
-      )}
+        <div className="shrink-0 rounded-full bg-neutral-100 px-3.5 py-1.5 text-sm dark:bg-neutral-900">
+          <span className="text-neutral-500">Pay </span>
+          <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+            {amountLabel}
+          </span>
+        </div>
+      </header>
 
-      {active === "card" && <CardPanel reference={reference} amountLabel={amountLabel} onDone={() => setDone(true)} />}
-      {active === "bank_transfer" && <TransferPanel reference={reference} onDone={() => setDone(true)} />}
-      {active === "ussd" && <UssdPanel reference={reference} onDone={() => setDone(true)} />}
+      <div className="flex flex-1 flex-col lg:flex-row">
+        {/* Method rail — horizontal pills on mobile, vertical list on desktop */}
+        <aside className="flex shrink-0 flex-col gap-1 border-b border-neutral-200 bg-neutral-50 px-4 py-3 lg:w-60 lg:border-b-0 lg:border-r lg:py-6 xl:w-64 dark:border-neutral-800 dark:bg-neutral-900/40">
+          <span className="hidden px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-neutral-400 lg:block">
+            Pay with
+          </span>
+          <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
+            {methods.map((m) => {
+              const { label, icon: Icon } = METHOD_META[m];
+              const isActive = active === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setActive(m)}
+                  aria-pressed={isActive}
+                  className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors lg:w-full ${
+                    isActive
+                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700"
+                      : "text-neutral-500 hover:bg-white/70 hover:text-neutral-800 dark:hover:bg-neutral-800/60 dark:hover:text-neutral-200"
+                  }`}
+                >
+                  <Icon
+                    size={16}
+                    className={
+                      isActive ? "text-indigo-600" : "text-neutral-400"
+                    }
+                  />
+                  {label}
+                  {isActive && (
+                    <ChevronRight
+                      size={14}
+                      className="ml-auto hidden text-indigo-400 lg:block"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Active method's form */}
+        <main className="flex flex-1 items-center justify-center px-5 py-10 lg:px-10">
+          <div className="w-full max-w-md">
+            <h1 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+              {HEADINGS[active]}
+            </h1>
+
+            <div className="mt-6">
+              {active === "card" && (
+                <CardPanel
+                  reference={reference}
+                  amountLabel={amountLabel}
+                  onDone={() => setDone(true)}
+                />
+              )}
+              {active === "bank_transfer" && (
+                <AsyncPanel
+                  kind="bank_transfer"
+                  reference={reference}
+                  onDone={() => setDone(true)}
+                />
+              )}
+              {active === "ussd" && (
+                <AsyncPanel
+                  kind="ussd"
+                  reference={reference}
+                  onDone={() => setDone(true)}
+                />
+              )}
+            </div>
+
+            <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
+              <ShieldCheck size={13} /> Secured by Spurs Pay
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
 
 /* ----------------------------- Card ----------------------------- */
 
-function CardPanel({ reference, amountLabel, onDone }: { reference: string; amountLabel: string; onDone: () => void }) {
+function formatCardNumber(v: string) {
+  return v
+    .replace(/\D/g, "")
+    .slice(0, 19)
+    .replace(/(.{4})/g, "$1 ")
+    .trim();
+}
+
+function formatExpiry(v: string) {
+  const digits = v.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2
+    ? `${digits.slice(0, 2)} / ${digits.slice(2)}`
+    : digits;
+}
+
+function CardPanel({
+  reference,
+  amountLabel,
+  onDone,
+}: {
+  reference: string;
+  amountLabel: string;
+  onDone: () => void;
+}) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [card, setCard] = useState({ number: "", expiry: "", cvv: "", name: "" });
-  const set = <K extends keyof typeof card>(k: K, v: string) => setCard((c) => ({ ...c, [k]: v }));
+  const [card, setCard] = useState({
+    number: "",
+    expiry: "",
+    cvv: "",
+    name: "",
+  });
+  const set = <K extends keyof typeof card>(k: K, v: string) =>
+    setCard((c) => ({ ...c, [k]: v }));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,14 +225,21 @@ function CardPanel({ reference, amountLabel, onDone }: { reference: string; amou
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reference,
-          card: { number: card.number.replace(/\s+/g, ""), expMonth, expYear, cvv: card.cvv, name: card.name },
+          card: {
+            number: card.number.replace(/\s+/g, ""),
+            expMonth,
+            expYear,
+            cvv: card.cvv,
+            name: card.name,
+          },
         }),
       });
       const json = await res.json();
       if (!res.ok) return fail(json.error ?? "Payment failed.");
       if (json.data?.status === "successful") {
         onDone();
-        if (json.redirectUrl) setTimeout(() => (window.location.href = json.redirectUrl), 1200);
+        if (json.redirectUrl)
+          setTimeout(() => (window.location.href = json.redirectUrl), 1200);
       } else fail("Your card was declined.");
     } catch {
       fail("Something went wrong. Please try again.");
@@ -94,41 +253,97 @@ function CardPanel({ reference, amountLabel, onDone }: { reference: string; amou
   return (
     <form onSubmit={submit} className="space-y-4">
       <Field label="Card number">
-        <input inputMode="numeric" autoComplete="cc-number" required placeholder="0000 0000 0000 0000"
-          value={card.number} onChange={(e) => set("number", e.target.value)} className="input" disabled={processing} />
+        <input
+          inputMode="numeric"
+          autoComplete="cc-number"
+          required
+          placeholder="0000 0000 0000 0000"
+          value={card.number}
+          onChange={(e) => set("number", formatCardNumber(e.target.value))}
+          className="fld font-mono"
+          disabled={processing}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Expiry (MM/YY)">
-          <input required placeholder="MM/YY" autoComplete="cc-exp" value={card.expiry}
-            onChange={(e) => set("expiry", e.target.value)} className="input" disabled={processing} />
+        <Field label="Expiry">
+          <input
+            required
+            placeholder="MM / YY"
+            autoComplete="cc-exp"
+            value={card.expiry}
+            onChange={(e) => set("expiry", formatExpiry(e.target.value))}
+            className="fld font-mono"
+            disabled={processing}
+          />
         </Field>
-        <Field label="CVV">
-          <input required inputMode="numeric" placeholder="123" autoComplete="cc-csc" value={card.cvv}
-            onChange={(e) => set("cvv", e.target.value)} className="input" disabled={processing} />
+        <Field label="CVV" hint="3–4 digits">
+          <input
+            required
+            inputMode="numeric"
+            placeholder="123"
+            autoComplete="cc-csc"
+            maxLength={4}
+            value={card.cvv}
+            onChange={(e) =>
+              set("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            className="fld font-mono"
+            disabled={processing}
+          />
         </Field>
       </div>
       <Field label="Cardholder name">
-        <input placeholder="Name on card" autoComplete="cc-name" value={card.name}
-          onChange={(e) => set("name", e.target.value)} className="input" disabled={processing} />
+        <input
+          placeholder="Name on card"
+          autoComplete="cc-name"
+          value={card.name}
+          onChange={(e) => set("name", e.target.value)}
+          className="fld"
+          disabled={processing}
+        />
       </Field>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>}
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:bg-red-500/10">
+          {error}
+        </p>
+      )}
 
-      <button type="submit" disabled={processing}
-        className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 transition">
-        {processing ? "Processing…" : `Pay ${amountLabel}`}
+      <button
+        type="submit"
+        disabled={processing}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+      >
+        {processing ? (
+          "Processing…"
+        ) : (
+          <>
+            <Lock size={14} /> Pay {amountLabel}
+          </>
+        )}
       </button>
     </form>
   );
 }
 
-/* ------------------------- Bank transfer ------------------------- */
+/* -------------------- Bank transfer / USSD -------------------- */
 
-function TransferPanel({ reference, onDone }: { reference: string; onDone: () => void }) {
-  const [instructions, setInstructions] = useState<TransferInstructions | null>(null);
+function AsyncPanel({
+  kind,
+  reference,
+  onDone,
+}: {
+  kind: "bank_transfer" | "ussd";
+  reference: string;
+  onDone: () => void;
+}) {
+  const [instructions, setInstructions] = useState<Instructions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  const endpoint =
+    kind === "bank_transfer" ? "/api/checkout/transfer" : "/api/checkout/ussd";
 
   useEffect(() => {
     let cancelled = false;
@@ -136,26 +351,30 @@ function TransferPanel({ reference, onDone }: { reference: string; onDone: () =>
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/checkout/transfer", {
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reference }),
         });
         const json = await res.json();
         if (cancelled) return;
-        if (!res.ok) setError(json.error ?? "Couldn't set up a bank transfer.");
+        if (!res.ok) setError(json.error ?? "Couldn't set up this method.");
         else setInstructions(json.instructions);
       } catch {
-        if (!cancelled) setError("Couldn't set up a bank transfer.");
+        if (!cancelled) setError("Couldn't set up this method.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [reference]);
+    return () => {
+      cancelled = true;
+    };
+  }, [endpoint, reference]);
 
   const poll = useCallback(async () => {
-    const res = await fetch(`/api/checkout/status?reference=${encodeURIComponent(reference)}`);
+    const res = await fetch(
+      `/api/checkout/status?reference=${encodeURIComponent(reference)}`,
+    );
     const json = await res.json();
     if (json.status === "successful") onDone();
   }, [reference, onDone]);
@@ -168,7 +387,6 @@ function TransferPanel({ reference, onDone }: { reference: string; onDone: () =>
 
   async function iHavePaid() {
     setConfirming(true);
-    // No-op outside sandbox — see /api/checkout/simulate. Acts as a manual refresh.
     await fetch("/api/checkout/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -178,167 +396,118 @@ function TransferPanel({ reference, onDone }: { reference: string; onDone: () =>
     setConfirming(false);
   }
 
-  if (loading) return <p className="py-6 text-center text-sm text-neutral-500">Setting up…</p>;
-  if (error) return <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>;
-  if (!instructions) return null;
+  if (loading) {
+    return (
+      <div className="flex h-48 flex-col items-center justify-center gap-2 text-sm text-neutral-500">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-indigo-600" />
+        Setting up…
+      </div>
+    );
+  }
+  if (error)
+    return (
+      <p className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:bg-red-500/10">
+        {error}
+      </p>
+    );
 
   return (
-    <div className="space-y-4">
-      <TransferDetails t={instructions} />
-      <p className="text-xs text-neutral-500">
-        This account was generated just for this payment and expires at{" "}
-        {new Date(instructions.expiresAt).toLocaleTimeString()}. We&apos;re waiting for it to arrive — this
-        updates automatically once it clears.
-      </p>
-      <ConfirmButton confirming={confirming} onClick={iHavePaid} />
+    <div className="space-y-5">
+      {instructions?.method === "bank_transfer" ? (
+        <TransferDetails t={instructions} />
+      ) : instructions?.method === "ussd" ? (
+        <UssdDetails u={instructions} />
+      ) : null}
+
+      <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+        We&apos;re waiting for your payment to arrive. This page updates
+        automatically once it clears — no need to refresh.
+      </div>
+
+      <button
+        onClick={iHavePaid}
+        disabled={confirming}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+      >
+        {confirming ? "Checking…" : "I've made this payment"}
+      </button>
     </div>
   );
 }
 
 function TransferDetails({ t }: { t: TransferInstructions }) {
   return (
-    <div className="rounded-lg border border-neutral-200 divide-y divide-neutral-100">
-      <Row label="Bank" value={t.bankName} />
-      <Row label="Account number" value={t.accountNumber} copy />
-      <Row label="Account name" value={t.accountName} />
-    </div>
-  );
-}
-
-/* ----------------------------- USSD ----------------------------- */
-
-function UssdPanel({ reference, onDone }: { reference: string; onDone: () => void }) {
-  const [banks, setBanks] = useState<Bank[] | null>(null);
-  const [bankCode, setBankCode] = useState("");
-  const [instructions, setInstructions] = useState<UssdInstructions | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/checkout/ussd?reference=${encodeURIComponent(reference)}`);
-        const json = await res.json();
-        if (!cancelled) setBanks(json.banks ?? []);
-      } catch {
-        if (!cancelled) setError("Couldn't load banks for USSD.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [reference]);
-
-  async function generate() {
-    if (!bankCode) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout/ussd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reference, bankCode }),
-      });
-      const json = await res.json();
-      if (!res.ok) setError(json.error ?? "Couldn't generate a USSD code.");
-      else setInstructions(json.instructions);
-    } catch {
-      setError("Couldn't generate a USSD code.");
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  const poll = useCallback(async () => {
-    const res = await fetch(`/api/checkout/status?reference=${encodeURIComponent(reference)}`);
-    const json = await res.json();
-    if (json.status === "successful") onDone();
-  }, [reference, onDone]);
-
-  useEffect(() => {
-    if (!instructions) return;
-    const id = setInterval(poll, 4000);
-    return () => clearInterval(id);
-  }, [instructions, poll]);
-
-  async function iHavePaid() {
-    setConfirming(true);
-    await fetch("/api/checkout/simulate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference }),
-    }).catch(() => {});
-    await poll();
-    setConfirming(false);
-  }
-
-  if (loading) return <p className="py-6 text-center text-sm text-neutral-500">Loading banks…</p>;
-
-  if (!instructions) {
-    return (
-      <div className="space-y-4">
-        <label className="block">
-          <span className="text-xs font-medium text-neutral-600">Choose your bank</span>
-          <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} className="input mt-1">
-            <option value="">Select a bank…</option>
-            {(banks ?? []).map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}
-          </select>
-        </label>
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>}
-        <button
-          onClick={generate}
-          disabled={!bankCode || generating}
-          className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 transition"
-        >
-          {generating ? "Generating…" : "Get USSD code"}
-        </button>
+    <div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          Transfer to this account
+        </span>
+        <ExpiryCountdown expiresAt={t.expiresAt} />
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <UssdDetails u={instructions} />
-      <p className="text-xs text-neutral-500">
-        Dial this on the phone linked to your account. We&apos;re waiting for it to clear — this updates
-        automatically.
-      </p>
-      <ConfirmButton confirming={confirming} onClick={iHavePaid} />
+      <div className="mt-2.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+        <Row label="Bank" value={t.bankName} />
+        <Row label="Account number" value={t.accountNumber} copy />
+        <Row label="Account name" value={t.accountName} />
+      </div>
     </div>
   );
 }
 
 function UssdDetails({ u }: { u: UssdInstructions }) {
   return (
-    <div className="rounded-lg border border-neutral-200 p-4 text-center">
-      <p className="text-xs text-neutral-500">Dial this on your phone</p>
-      <p className="mt-1 text-2xl font-semibold tracking-wide text-neutral-900">{u.code}</p>
-      <p className="mt-1 text-xs text-neutral-400">{u.bankName}</p>
+    <div>
+      <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        Dial this on your phone
+      </span>
+      <div className="mt-2.5 rounded-xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
+        <p className="font-mono text-3xl font-semibold tracking-wide text-neutral-900 dark:text-neutral-100">
+          {u.code}
+        </p>
+        <p className="mt-1.5 text-xs text-neutral-400">{u.bankName}</p>
+      </div>
     </div>
   );
 }
 
-/* --------------------------- shared bits --------------------------- */
-
-function ConfirmButton({ confirming, onClick }: { confirming: boolean; onClick: () => void }) {
+/** Live "expires in mm:ss" — same pattern Paystack/Flutterwave show on transfer instructions. */
+function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const [remaining, setRemaining] = useState(() =>
+    Math.max(0, Date.parse(expiresAt) - Date.now()),
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () => setRemaining(Math.max(0, Date.parse(expiresAt) - Date.now())),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  const low = remaining < 5 * 60_000;
   return (
-    <button onClick={onClick} disabled={confirming}
-      className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 transition">
-      {confirming ? "Checking…" : "I've made this payment"}
-    </button>
+    <span
+      className={`font-mono text-xs font-medium ${low ? "text-red-500" : "text-neutral-400"}`}
+    >
+      Expires {mins}:{String(secs).padStart(2, "0")}
+    </span>
   );
 }
 
-function Row({ label, value, copy }: { label: string; value: string; copy?: boolean }) {
+function Row({
+  label,
+  value,
+  copy,
+}: {
+  label: string;
+  value: string;
+  copy?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-center justify-between px-3 py-2.5">
+    <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
       <span className="text-xs text-neutral-500">{label}</span>
-      <span className="flex items-center gap-2 text-sm font-medium text-neutral-900">
+      <span className="flex items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {value}
         {copy && (
           <button
@@ -347,9 +516,14 @@ function Row({ label, value, copy }: { label: string; value: string; copy?: bool
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
+            className="text-neutral-400 hover:text-indigo-600"
+            aria-label="Copy account number"
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? (
+              <Check size={14} className="text-emerald-500" />
+            ) : (
+              <Copy size={14} />
+            )}
           </button>
         )}
       </span>
@@ -357,11 +531,46 @@ function Row({ label, value, copy }: { label: string; value: string; copy?: bool
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/* ------------------------------ shared ------------------------------ */
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-neutral-600">{label}</span>
-      <div className="mt-1">{children}</div>
+      <span className="mb-1.5 flex items-baseline justify-between text-xs font-medium text-neutral-600 dark:text-neutral-400">
+        {label}
+        {hint && <span className="font-normal text-neutral-400">{hint}</span>}
+      </span>
+      {children}
+      <style jsx>{`
+        .fld {
+          height: 3rem;
+          width: 100%;
+          border-radius: 0.75rem;
+          border: 1px solid #d4d4d4;
+          padding: 0 1rem;
+          font-size: 0.9rem;
+          outline: none;
+          transition:
+            border-color 0.15s,
+            box-shadow 0.15s;
+          background: transparent;
+        }
+        .fld:focus {
+          border-color: #4f46e5;
+          box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
+        }
+        .fld:disabled {
+          opacity: 0.6;
+        }
+      `}</style>
     </label>
   );
 }
