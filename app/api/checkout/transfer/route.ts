@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPayment, attachInstructions } from "@/lib/payments";
+import { getPayment, attachInstructions, paymentInstructions } from "@/lib/payments";
 import { resolveProvider } from "@/lib/providers";
 import { getMerchant } from "@/lib/merchants";
 import { enabledMethods } from "@/lib/checkout-methods";
@@ -14,6 +14,15 @@ export async function POST(req: NextRequest) {
   if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   if (payment.status !== "pending") {
     return NextResponse.json({ error: "Payment already processed" }, { status: 409 });
+  }
+
+  // Already set up (e.g. the panel remounted, or the customer switched methods
+  // and back). Reuse it instead of asking the provider to create a second
+  // virtual account against the same reference — Flutterwave's tx_ref is
+  // unique, so a second call would just fail.
+  const existing = paymentInstructions(payment);
+  if (payment.method === "bank_transfer" && existing?.method === "bank_transfer") {
+    return NextResponse.json({ instructions: existing });
   }
 
   const merchant = await getMerchant(payment.merchantId);
