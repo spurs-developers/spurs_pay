@@ -39,9 +39,9 @@ export default async function CheckoutPage({
       reference={payment.reference}
       amountLabel={amountLabel}
       methods={methods}
-      businessName={merchant?.businessName}
-      customerEmail={payment.customerEmail}
-      description={payment.description}
+      // businessName={merchant?.businessName}
+      // customerEmail={payment.customerEmail}
+      // description={payment.description}
     />
   );
 }
