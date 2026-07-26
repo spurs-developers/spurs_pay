@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bank transfer isn't enabled for this payment" }, { status: 400 });
   }
 
-  const provider = await resolveProvider();
+  const provider = await resolveProvider(payment.mode as "test" | "live");
   if (!provider.createTransfer) {
     return NextResponse.json({ error: "Bank transfer is unavailable" }, { status: 400 });
   }

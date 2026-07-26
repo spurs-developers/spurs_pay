@@ -46,14 +46,14 @@ export async function getBalance(merchantId: string, currency = "NGN", mode: "te
 
 /* ------------------------------ recipients ------------------------------ */
 
-export async function listBanks() {
-  const provider = await resolveProvider();
+export async function listBanks(mode: "test" | "live" = "live") {
+  const provider = await resolveProvider(mode);
   return provider.listBanks ? provider.listBanks() : [];
 }
 
 /** Confirm who owns an account before any money moves. */
-export async function resolveAccount(bankCode: string, accountNumber: string) {
-  const provider = await resolveProvider();
+export async function resolveAccount(bankCode: string, accountNumber: string, mode: "test" | "live" = "live"): Promise<{ accountName: string } | null> {
+  const provider = await resolveProvider(mode);
   if (!provider.resolveAccount) throw new Error("Account resolution is unavailable");
   return provider.resolveAccount(bankCode, accountNumber);
 }

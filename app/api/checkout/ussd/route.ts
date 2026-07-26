@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Payment already processed" }, { status: 409 });
   }
 
-  const provider = await resolveProvider();
+  const provider = await resolveProvider(payment.mode as "test" | "live");
   if (!provider.createUssd) {
     return NextResponse.json({ error: "USSD is unavailable" }, { status: 400 });
   }

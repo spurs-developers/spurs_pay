@@ -9,7 +9,7 @@ import { resolveProvider } from "@/lib/providers";
 // The merchant never sees this endpoint or the processor's payload.
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  const provider = await resolveProvider();
+  const provider = await resolveProvider("live");
   const { valid, event } = provider.verifyWebhook(raw, req.headers);
   if (!valid || !event?.reference) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
