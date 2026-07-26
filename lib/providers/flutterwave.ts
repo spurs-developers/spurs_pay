@@ -119,18 +119,25 @@ export class FlutterwaveProvider implements PaymentProvider {
 
   // expiry_date is almost always "N/A" for temporary accounts — Flutterwave
   // doesn't enforce a hard deadline here, so we impose our own collection window.
-  console.error(data)
-  const expiresAt =
-    data.expiry_date && data.expiry_date !== "N/A"
-      ? new Date(data.expiry_date).toISOString()
-      : new Date(Date.now() + 30 * 60_000).toISOString();
+  const created = data.created_at ? new Date(data.created_at.replace(" ", "T")) : null;
+const expiry = data.expiry_date && data.expiry_date !== "N/A"
+  ? new Date(data.expiry_date.replace(" ", "T"))
+  : null;
+
+  let expiresAt: string;
+if (created && expiry && !isNaN(created.getTime()) && !isNaN(expiry.getTime())) {
+  const durationMs = expiry.getTime() - created.getTime();
+  expiresAt = new Date(Date.now() + Math.max(durationMs, 5 * 60_000)).toISOString();
+} else {
+  expiresAt = new Date(Date.now() + 30 * 60_000).toISOString();
+}
 
   return {
     method: "bank_transfer",
     bankName: data.bank_name,
     accountNumber: data.account_number,
     accountName: "SPURS PAY", // no discrete name field from this endpoint — `note` is a sentence, not a label
-    amount: input.amount,
+    amount: data.amount,
     currency: input.currency,
     expiresAt,
   };
