@@ -6,8 +6,8 @@ import type {
 import { USSD_BANKS } from "./ussd-banks";
 
 interface FlutterwaveConfig {
-  FLUTTERWAVE_SECRET_KEY?: string;
-  FLUTTERWAVE_WEBHOOK_SECRET?: string;
+  PAY_FLUTTERWAVE_SECRET_KEY?: string;
+  PAY_FLUTTERWAVE_WEBHOOK_SECRET?: string;
 }
 
 // Real provider adapter. Only runs when PAY_PROVIDER=flutterwave AND keys are set.
@@ -19,8 +19,8 @@ export class FlutterwaveProvider implements PaymentProvider {
   private webhookSecret: string;
 
   constructor(cfg: FlutterwaveConfig = {}) {
-    this.secret = cfg.FLUTTERWAVE_SECRET_KEY ?? process.env.FLUTTERWAVE_SECRET_KEY ?? "";
-    this.webhookSecret = cfg.FLUTTERWAVE_WEBHOOK_SECRET ?? process.env.FLUTTERWAVE_WEBHOOK_SECRET ?? "";
+    this.secret = cfg.PAY_FLUTTERWAVE_SECRET_KEY ?? process.env.FLUTTERWAVE_SECRET_KEY ?? "";
+    this.webhookSecret = cfg.PAY_FLUTTERWAVE_WEBHOOK_SECRET ?? process.env.FLUTTERWAVE_WEBHOOK_SECRET ?? "";
   }
 
   async charge(input: ChargeInput): Promise<ChargeResult> {
