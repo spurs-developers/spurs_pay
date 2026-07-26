@@ -119,7 +119,7 @@ export class FlutterwaveProvider implements PaymentProvider {
 
   // expiry_date is almost always "N/A" for temporary accounts — Flutterwave
   // doesn't enforce a hard deadline here, so we impose our own collection window.
-  console.log(data)
+  console.error(data)
   const expiresAt =
     data.expiry_date && data.expiry_date !== "N/A"
       ? new Date(data.expiry_date).toISOString()
