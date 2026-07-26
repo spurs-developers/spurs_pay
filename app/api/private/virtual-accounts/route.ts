@@ -28,8 +28,15 @@ export async function POST(req: NextRequest) {
 
   try {
     const account = await provider.createVirtualAccount(parsed.data);
-    // providerRef is internal — the caller only needs the bank details.
-    return NextResponse.json({ data: { bankName: account.bankName, accountNumber: account.accountNumber, accountName: account.accountName } });
+    return NextResponse.json({
+      data: {
+        bankName: account.bankName,
+        accountNumber: account.accountNumber,
+        accountName: account.accountName,
+        provider: parsed.data.mode === "test" ? "sandbox" : provider.name,
+        providerRef: account.providerRef,
+      },
+    });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }

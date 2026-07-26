@@ -119,6 +119,8 @@ export const virtualAccounts = pay.table(
     accountNumber: text("account_number").notNull(),
     accountName: text("account_name").notNull(),
     currency: text("currency").notNull().default("NGN"),
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
