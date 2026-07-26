@@ -18,7 +18,7 @@ const METHOD_META: Record<PaymentMethod, { label: string; icon: typeof CreditCar
 };
 
 export default function CheckoutForm({ reference, amountLabel, methods }: Props) {
-  const [active, setActive] = useState<PaymentMethod>(methods[0]);
+  const [active, setActive] = useState<PaymentMethod>(methods?.[0]);
   const [done, setDone] = useState(false);
 
   if (done) {
