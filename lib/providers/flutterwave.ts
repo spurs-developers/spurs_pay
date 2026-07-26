@@ -1,6 +1,6 @@
 import type {
   PaymentProvider, PaymentMethod, ChargeInput, ChargeResult, MethodInput,
-  TransferInstructions, UssdInstructions, NormalizedWebhook,
+  TransferInstructions, UssdInstructions, NormalizedWebhook, VirtualAccountInput, VirtualAccountResult,
 } from "./types";
 
 interface FlutterwaveConfig {
@@ -43,6 +43,43 @@ export class FlutterwaveProvider implements PaymentProvider {
     const body = await res.json().catch(() => ({}));
     const status = body?.data?.status === "successful" ? "successful" : "failed";
     return { status, providerReference: String(body?.data?.id ?? ""), message: body?.message };
+  }
+
+  async createVirtualAccount(input: VirtualAccountInput): Promise<VirtualAccountResult> {
+    if (!this.secret) throw new Error("Flutterwave is not configured (missing secret key).");
+
+    const [firstName, ...rest] = (input.firstName ?? input.customerName ?? "Spurs User").trim().split(/\s+/);
+    const lastName = input.lastName ?? (rest.join(" ") || "User");
+    const payload = {
+      email: input.customerEmail ?? `${input.reference}@spurs.local`,
+      tx_ref: input.reference,
+      phonenumber: input.phoneNumber ?? process.env.FLUTTERWAVE_VA_PHONENUMBER ?? "",
+      is_permanent: true,
+      firstname: firstName || "Spurs",
+      lastname: lastName || "User",
+      narration: input.narration ?? `SPURS ${input.reference}`,
+      ...(input.bankCode ? { bank_code: input.bankCode } : {}),
+      ...(input.bvn ? { bvn: input.bvn } : {}),
+    };
+
+    const res = await fetch("https://api.flutterwave.com/v3/virtual-account-numbers", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.secret}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || body?.status !== "success") {
+      throw new Error(body?.message ?? "Flutterwave virtual account creation failed");
+    }
+
+    const data = body?.data ?? {};
+    return {
+      bankName: data.bank_name ?? "Flutterwave Bank",
+      accountNumber: String(data.account_number ?? ""),
+      accountName: data.note ?? `${firstName || "Spurs"} ${lastName || "User"}`.trim(),
+      providerRef: String(data.flw_ref ?? data.order_ref ?? input.reference),
+    };
   }
 
   async createTransfer(input: MethodInput): Promise<TransferInstructions> {

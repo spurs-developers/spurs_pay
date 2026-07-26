@@ -69,6 +69,13 @@ export interface VirtualAccountInput {
   customerName: string;
   customerEmail?: string;
   currency?: string;
+  /** Optional provider-specific fields for real processors. */
+  phoneNumber?: string;
+  bvn?: string;
+  bankCode?: string;
+  firstName?: string;
+  lastName?: string;
+  narration?: string;
 }
 
 /** A dedicated account that collects bank transfers for one customer. */
