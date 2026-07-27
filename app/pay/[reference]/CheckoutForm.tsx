@@ -382,7 +382,8 @@ function AsyncPanel({
             );
             const banksJson = await banksRes.json();
             if (cancelled) return;
-            if (!banksRes.ok) setError(banksJson.error ?? "Couldn't load banks.");
+            if (!banksRes.ok)
+              setError(banksJson.error ?? "Couldn't load banks.");
             else setBanks(banksJson.banks ?? []);
           }
         }
@@ -463,7 +464,9 @@ function AsyncPanel({
   if (kind === "ussd" && !instructions) {
     return (
       <div className="space-y-2">
-        <p className="mb-1 text-xs font-medium text-neutral-500">Choose your bank</p>
+        <p className="mb-1 text-xs font-medium text-neutral-500">
+          Choose your bank
+        </p>
         {(banks ?? []).map((b) => (
           <button
             key={b.code}
@@ -473,11 +476,15 @@ function AsyncPanel({
             className="flex h-11 w-full items-center justify-between rounded-xl border border-neutral-200 px-4 text-sm font-medium transition hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-800 dark:hover:bg-neutral-900"
           >
             {b.name}
-            {creating && <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-indigo-600" />}
+            {creating && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-indigo-600" />
+            )}
           </button>
         ))}
         {(banks ?? []).length === 0 && (
-          <p className="text-sm text-neutral-500">No banks available for USSD right now.</p>
+          <p className="text-sm text-neutral-500">
+            No banks available for USSD right now.
+          </p>
         )}
       </div>
     );
@@ -577,10 +584,13 @@ function Row({
 }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span className="flex items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {value}
+    <div className="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
+      <span className="shrink-0 text-xs text-neutral-500">{label}</span>
+      <span
+        className="flex min-w-0 items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100"
+        title={value}
+      >
+        <span className="truncate">{value}</span>
         {copy && (
           <button
             onClick={() => {
@@ -588,7 +598,7 @@ function Row({
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}
-            className="text-neutral-400 hover:text-indigo-600"
+            className="shrink-0 text-neutral-400 hover:text-indigo-600"
             aria-label="Copy account number"
           >
             {copied ? (
