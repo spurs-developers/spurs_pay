@@ -136,7 +136,7 @@ export class FlutterwaveProvider implements PaymentProvider {
   const amount = Number.isFinite(payable) && payable > 0
     ? Math.round(payable * 100)
     : input.amount;
-
+  console.error(amount, data)
   return {
     method: "bank_transfer",
     bankName: data.bank_name,
