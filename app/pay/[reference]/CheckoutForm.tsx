@@ -638,19 +638,20 @@ function Field({
         .fld {
           height: 3rem;
           width: 100%;
+          max-width: 100%;
           border-radius: 0.75rem;
           border: 1px solid #d4d4d4;
           padding: 0 1rem;
-          font-size: 0.9rem;
+          font-size: 16px;
           outline: none;
-          transition:
-            border-color 0.15s,
-            box-shadow 0.15s;
+          transition: border-color 0.15s;
           background: transparent;
+          box-sizing: border-box;
         }
         .fld:focus {
           border-color: #4f46e5;
-          box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
+          outline: none;
+          box-shadow: none;
         }
         .fld:disabled {
           opacity: 0.6;
