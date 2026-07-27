@@ -526,7 +526,7 @@ function TransferDetails({ t }: { t: TransferInstructions }) {
         <ExpiryCountdown expiresAt={t.expiresAt} />
       </div>
       <div className="mt-2.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-        <Row label="Bank" value={t.bankName} maxChars={30} />
+        <Row label="Bank" value={t.bankName} maxChars={15} />
         <Row label="Account number" value={t.accountNumber} copy />
         <Row label="Account name" value={t.accountName} />
       </div>
