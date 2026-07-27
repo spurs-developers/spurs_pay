@@ -329,6 +329,7 @@ function CardPanel({
 /* -------------------- Bank transfer / USSD -------------------- */
 
 import type { Bank } from "@/lib/providers/types";
+import { truncateText } from "@/lib/format";
 
 function AsyncPanel({
   kind,
@@ -525,7 +526,7 @@ function TransferDetails({ t }: { t: TransferInstructions }) {
         <ExpiryCountdown expiresAt={t.expiresAt} />
       </div>
       <div className="mt-2.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-        <Row label="Bank" value={t.bankName} />
+        <Row label="Bank" value={t.bankName} maxChars={20} />
         <Row label="Account number" value={t.accountNumber} copy />
         <Row label="Account name" value={t.accountName} />
       </div>
@@ -577,20 +578,23 @@ function Row({
   label,
   value,
   copy,
+  maxChars=0,
 }: {
   label: string;
   value: string;
   copy?: boolean;
+  maxChars?: number;
 }) {
   const [copied, setCopied] = useState(false);
+  const display = maxChars ? truncateText(value, maxChars) : value;
   return (
     <div className="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
-      <span className="shrink-5 text-xs text-neutral-500">{label}</span>
+      <span className="shrink-0 text-xs text-neutral-500">{label}</span>
       <span
         className="flex min-w-0 items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100"
         title={value}
       >
-        <span className="truncate">{value}</span>
+        <span className="truncate">{display}</span>
         {copy && (
           <button
             onClick={() => {
@@ -612,7 +616,6 @@ function Row({
     </div>
   );
 }
-
 /* ------------------------------ shared ------------------------------ */
 
 function Field({

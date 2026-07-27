@@ -5,3 +5,7 @@ export function formatAmount(minor: number, currency: string): string {
   const symbol = SYMBOLS[currency] ?? currency + " ";
   return symbol + (minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+export function truncateText(value: string, max: number) {
+  return value.length > max ? value.slice(0, max - 1).trimEnd() + "…" : value;
+}
