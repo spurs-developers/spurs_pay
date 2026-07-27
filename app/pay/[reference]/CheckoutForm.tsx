@@ -578,7 +578,7 @@ function Row({
   label,
   value,
   copy,
-  maxChars=0,
+  maxChars,
 }: {
   label: string;
   value: string;
