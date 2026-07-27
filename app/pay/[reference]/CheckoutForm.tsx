@@ -585,7 +585,7 @@ function Row({
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
-      <span className="shrink-0 text-xs text-neutral-500">{label}</span>
+      <span className="shrink-5 text-xs text-neutral-500">{label}</span>
       <span
         className="flex min-w-0 items-center gap-2 font-mono text-sm font-medium text-neutral-900 dark:text-neutral-100"
         title={value}
