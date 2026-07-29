@@ -43,10 +43,10 @@ jobs:
           password: ${{ secrets.CPANEL_PASSWORD }}
           server-dir: /
           local-dir: .next/standalone/
-          # ONE-TIME: clean full upload + reset FTP sync-state (a stale state from the
-          # node_modules-excluded deploys makes the incremental sync 550 when
-          # node_modules newly appears). Set back to false after the first success.
-          dangerous-clean-slate: true
+          # NEVER use dangerous-clean-slate: server-dir is the CloudLinux Node app
+          # root and wiping it deletes the Passenger-managed .htaccess, breaking the
+          # Node.js Selector. To reset a stale FTP state, delete
+          # `.ftp-deploy-sync-state.json` on the server once, then redeploy.
           # DO NOT exclude node_modules: `output: standalone` ships a minimal,
           # self-contained node_modules (next, react, sharp…) inside .next/standalone.
           # Excluding it leaves the cPanel server without Next.js → 503.
